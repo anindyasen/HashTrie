@@ -1,4 +1,3 @@
-// Copyright 2018 Polaris Networks (www.polarisnetworks.net).
 #ifndef USERPLANE_LOCK_RCU_HPP_
 #define USERPLANE_LOCK_RCU_HPP_
 
@@ -11,8 +10,6 @@
 #include <thread>  //  NOLINT
 #include <type_traits>
 
-#include "common.hpp"
-#include "heap_manager.hpp"
 
 namespace lock {
 const uint32_t kRCUPauseRepeatCount       =  0x0;     /* Repeat Pause and then yield */
@@ -61,7 +58,7 @@ class RCUProtected : public RCU {
         T* old_data_ptr = data_ptr_.load(std::memory_order_relaxed);
         data_ptr_.store(0, std::memory_order_relaxed);
         synchronize_rcu();
-        heap::MiniFree(coreId, reinterpret_cast<void**>(&old_data_ptr));
+        delete old_data_ptr;
     }
     inline void setCoreId(uint8_t coreID) {
         coreId = coreID;
@@ -98,7 +95,7 @@ class RCUProtected : public RCU {
         T* old_data_ptr = data_ptr_.load(std::memory_order_relaxed);
         data_ptr_.store(new_data_ptr, std::memory_order_relaxed);
         synchronize_rcu();
-        heap::MiniFree(coreId, reinterpret_cast<void**>(&old_data_ptr));
+        delete old_data_ptr;
     }
 
     inline void synchronize_writing() {

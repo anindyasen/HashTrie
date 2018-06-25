@@ -1,4 +1,3 @@
-// Copyright 2018 Polaris Networks (www.polarisnetworks.net).
 #ifndef USERPLANE_SINGLETON_HPP_
 #define USERPLANE_SINGLETON_HPP_
 

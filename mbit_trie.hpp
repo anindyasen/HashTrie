@@ -1,18 +1,21 @@
-// Copyright 2018 Polaris Networks (www.polarisnetworks.net).
 #ifndef USERPLANE_MBIT_TRIE_HPP_
 #define USERPLANE_MBIT_TRIE_HPP_
 
 #include <utility>
 #include <memory>
+#include <cstdio>
+#include <cstdarg>
+#include <iostream>
+
+#include <string>
+
 /**
  * Multi Bit Trie Arch. Used for IPv4 address lookup
  *
  */
+#include "singleton.hpp"
 #include "common.hpp"
 #include "lock_rcu.hpp"
-#include "heap_manager.hpp"
-#include "logger.hpp"
-#include "ip.hpp"
 
 namespace hash {
 const int kHashTrieSize = 256;
@@ -133,7 +136,7 @@ utils::RESULT HashTrie<T>::HashTrieAddNode(uint32_t in_Key, T *in_Data) {
     if (nullptr == TierNode1) {
         // allocating memory only
         NodesB<T> *NewTierNode =
-        reinterpret_cast<NodesB<T> *>(heap::MiniMalloc(WorkCore_, sizeof(NodesB<T>)));
+        reinterpret_cast<NodesB<T> *> (new NodesB<T>);
         // calling constructor
         new (NewTierNode) NodesB<T>();
         EffectiveNodeCount_++;
@@ -144,7 +147,7 @@ utils::RESULT HashTrie<T>::HashTrieAddNode(uint32_t in_Key, T *in_Data) {
 
     if (nullptr == TierNode1->TierNode[Tier2Key]) {
         NodesC<T>* NewNodesCPtr =
-                      reinterpret_cast<NodesC<T> *>(heap::MiniMalloc(WorkCore_, sizeof(NodesC<T>)));
+                      reinterpret_cast<NodesC<T> *>(new NodesC<T>);
         new (NewNodesCPtr) NodesC<T>();
         TierNode1->TierNode[Tier2Key] = NewNodesCPtr;
         TierNode1->EffectiveNodeCount++;
@@ -153,7 +156,7 @@ utils::RESULT HashTrie<T>::HashTrieAddNode(uint32_t in_Key, T *in_Data) {
     NodesC<T> *TierNode2 = TierNode1->TierNode[Tier2Key];
     if (nullptr == TierNode2->TierNode[Tier3Key]) {
         NodesD<T>* NewNodeDPtr =
-                      reinterpret_cast<NodesD<T> *>(heap::MiniMalloc(WorkCore_, sizeof(NodesD<T>)));
+                      reinterpret_cast<NodesD<T> *>(new NodesD<T>);
         new (NewNodeDPtr) NodesD<T>();
         TierNode2->TierNode[Tier3Key] = NewNodeDPtr;
         TierNode2->EffectiveNodeCount++;
@@ -207,7 +210,7 @@ T* HashTrie<T>::HashTrieGetNode(uint32_t in_Key) {
 template <typename T>
 bool HashTrie<T>::HashTrieRemoveNode(uint32_t in_Key, T** result) {
     if (result == nullptr) {
-        logger::LOG("Failed to remove key from Hash table.\n");
+        printf("Failed to remove key from Hash table.\n");
         return false;
     }
 
@@ -268,16 +271,16 @@ bool HashTrie<T>::HashTrieRemoveNode(uint32_t in_Key, T** result) {
 
         if (nullptr != OldTire2) {
             if (nullptr != OldTire2) {
-                heap::MiniFree(WorkCore_, reinterpret_cast<void**>(&OldTire2));
+                delete OldTire2;
             }
         }
 
         if (nullptr != Tire4) {
-           heap::MiniFree(WorkCore_, reinterpret_cast<void**>(&Tire4));
+           delete Tire4;
         }
 
         if (nullptr != Tire3) {
-           heap::MiniFree(WorkCore_, reinterpret_cast<void**>(&Tire3));
+           delete Tire3;
         }
 
         return true;
@@ -301,20 +304,20 @@ void HashTrie<T>::HashTrieFlushExtended() {
                             }
                             Tire4->EffectiveNodeCount = 0;
                             SyncBeforeUpdateNextNode(i);
-                            heap::MiniFree(WorkCore_, reinterpret_cast<void**>(&Tire4));
+                            delete Tire4;
                         }
                         Tire3->TierNode[k] = nullptr;
                     }
                     Tire3->EffectiveNodeCount = 0;
                     SyncBeforeUpdateNextNode(i);
-                    heap::MiniFree(WorkCore_, reinterpret_cast<void**>(&Tire3));
+                    delete Tire3;
                 }
                 Tire2->TierNode[j] = nullptr;
             }
             Tire2->EffectiveNodeCount = 0;
             NodesB<T> * oldTire2 = UpdateNextNode(nullptr, i);
             SyncBeforeUpdateNextNode(i);
-            heap::MiniFree(WorkCore_, reinterpret_cast<void**>(&oldTire2));
+            delete oldTire2;
         }
     }
     EffectiveNodeCount_ = 0;
@@ -325,7 +328,7 @@ void HashTrie<T>::HashTrieFlushExtended() {
 //Usage :
 //Create Singleton Object(Here ip::IPv4Addr_t is the type of data in trie):
 namespace global {
-using IPHashTrie = Singleton<hash::HashTrie<ip::IPv4Addr_t>>;
+using IPHashTrie = Singleton<hash::HashTrie<unsigned int>>;
 }  //  namespace global
 
 //Initialize IPHashTrie :

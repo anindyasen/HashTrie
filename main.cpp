@@ -1,4 +1,3 @@
-#include <iostream>
 #include "mbit_trie.hpp"
 #include "../../trunk/5G/UserPlane/ip.hpp"
 #include "../../trunk/5G/UserPlane/singleton.hpp"
